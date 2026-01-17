@@ -4,7 +4,6 @@ import { Message, Transaction } from '../components/chat/ChatInterfaces';
 import { formatCurrency } from '../lib/utils';
 import { RecurringIncome, checkRecurringIncomes } from '../lib/finance';
 import { BankAccount, BankService } from '../services/bank';
-import { db } from '../lib/firebase';
 
 interface SavingsGoal {
   id: string;
@@ -32,7 +31,6 @@ interface AppState {
   setStatsPeriod: (period: StatsPeriod) => void;
   backgroundTheme: BackgroundTheme;
   setBackgroundTheme: (theme: BackgroundTheme) => void;
-
   currency: string;
   setCurrency: (currency: string) => void;
   formatPrice: (amount: number) => string;
@@ -165,7 +163,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => localStorage.setItem('pote_transactions', JSON.stringify(transactions)), [transactions]);
   useEffect(() => localStorage.setItem('pote_savings_goals', JSON.stringify(savingsGoals)), [savingsGoals]);
   useEffect(() => localStorage.setItem('pote_incomes', JSON.stringify(recurringIncomes)), [recurringIncomes]);
-  useEffect(() => localStorage.setItem('pote_theme', theme), [theme]);
 
   // Check Recurring Income on Mount
   useEffect(() => {
@@ -182,7 +179,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
                 is_expense: false,
                 date: new Date().toISOString(),
                 currency: currency,
-                type: 'income'
+                type: 'income',
+                name: inc.name
             };
             setTransactions(prev => [...prev, newTx]);
         });
@@ -204,20 +202,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.setItem('pote_last_login', now.toISOString());
   }, []);
 
-  // Theme Application
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.documentElement.style.setProperty('--bg-primary', '#000000');
-      document.documentElement.style.setProperty('--glass-bg', 'rgba(255, 255, 255, 0.05)');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.style.setProperty('--bg-primary', '#f3f4f6'); 
-      document.documentElement.style.setProperty('--glass-bg', 'rgba(0, 0, 0, 0.05)');
-    }
-  }, [theme]);
-
-
   // --- Actions ---
 
   const updateBalance = (newBalance: number) => setBalance(newBalance);
@@ -230,8 +214,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const removeRecurringIncome = (id: string) => {
     setRecurringIncomes(prev => prev.filter(i => i.id !== id));
   };
-
-  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const addSavingsGoal = (name: string, target: number) => {
     const newGoal: SavingsGoal = {
@@ -342,7 +324,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             is_expense: isExpense,
             date: new Date().toISOString(),
             currency: result.transaction.currency || 'EUR',
-            type: result.transaction.type // Use new type from Gemini
+            type: result.transaction.type, // Use new type from Gemini
+            name: result.transaction.name || text
           };
           setTransactions(prev => [...prev, neTx]);
       }
@@ -359,7 +342,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
                 category: result.transaction.category,
                 is_expense: result.transaction.is_expense !== false,
                 date: new Date().toISOString(),
-                currency: 'EUR'
+                currency: 'EUR',
+                name: result.transaction.name || text
             } : undefined,
             sentiment: result.sentiment
         }
@@ -384,9 +368,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <AppContext.Provider value={{ 
         balance, messages, transactions, savingsGoals, currency, isLoading, 
-        recurringIncomes, theme, accounts, totalWealth,
+        recurringIncomes, accounts, totalWealth,
         sendMessage, addSavingsGoal, addToSavingsGoal, deleteSavingsGoal, resetData, setCurrency, formatPrice,
-        addRecurringIncome, removeRecurringIncome, updateBalance, toggleTheme, addBankAccount: (acc) => setAccounts(prev => [...prev, acc])
+        addRecurringIncome, removeRecurringIncome, updateBalance, addBankAccount: (acc) => setAccounts(prev => [...prev, acc]),
+        statsPeriod, setStatsPeriod: setStatsPeriodState, backgroundTheme, setBackgroundTheme: setBackgroundThemeState
     }}>
       {children}
     </AppContext.Provider>

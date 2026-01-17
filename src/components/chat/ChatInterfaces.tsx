@@ -11,7 +11,8 @@ export interface Transaction {
   is_expense: boolean;
   date: string;
   currency: string;
-  type?: 'need' | 'want' | 'income'; 
+  type?: 'need' | 'want' | 'income';
+  name: string;
 }
 
 export interface Message {
@@ -30,8 +31,7 @@ export interface Message {
 
 export const ChatBubble = ({ message }: { message: Message }) => {
   const isAi = message.sender === 'ai';
-  const { formatPrice, theme } = useApp();
-  const isLight = theme === 'light';
+  const { formatPrice } = useApp();
   
   return (
     <motion.div 
@@ -45,15 +45,11 @@ export const ChatBubble = ({ message }: { message: Message }) => {
       <div className={cn(
         "max-w-[85%] rounded-2xl p-4 text-sm relative overflow-hidden",
         isAi 
-          ? isLight 
-            ? "bg-white border border-gray-200 shadow-sm rounded-tl-none text-gray-800 border-l-2 border-l-purple-400" 
-            : "bg-glass-card rounded-tl-none text-gray-200 border-l-2 border-neon-purple/50"
-          : isLight
-            ? "bg-green-50 text-gray-800 rounded-tr-none border border-green-200"
-            : "bg-neon-green/10 text-white rounded-tr-none border border-neon-green/20"
+          ? "bg-glass-card rounded-tl-none text-gray-200 border-l-2 border-neon-purple/50"
+          : "bg-neon-green/10 text-white rounded-tr-none border border-neon-green/20"
       )}>
         {/* Decorative flair for AI messages */}
-        {isAi && !isLight && (
+        {isAi && (
           <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-neon-purple via-neon-blue to-transparent opacity-50" />
         )}
 
@@ -64,7 +60,7 @@ export const ChatBubble = ({ message }: { message: Message }) => {
           <div className="mt-2 mb-1">
             <img src={message.metadata.image} alt="Attachment" className={cn(
               "rounded-lg max-h-48 object-cover border",
-              isLight ? "border-gray-200" : "border-white/10"
+              "border-white/10"
             )} />
           </div>
         )}
@@ -73,9 +69,7 @@ export const ChatBubble = ({ message }: { message: Message }) => {
         {message.metadata?.transaction && (
            <div className={cn(
              "mt-2 inline-flex items-center gap-2 px-2 py-1 rounded-md text-xs font-mono",
-             isLight 
-               ? "bg-gray-100 border border-gray-200 text-gray-600"
-               : "bg-black/30 border border-white/5 text-neon-green"
+             "bg-black/30 border border-white/5 text-neon-green"
            )}>
              <span>{message.metadata.transaction.category || 'Dépense'}</span>
              <span className="font-bold">-{formatPrice(message.metadata.transaction.amount)}</span>
@@ -84,7 +78,7 @@ export const ChatBubble = ({ message }: { message: Message }) => {
 
         <span className={cn(
           "text-[10px] block mt-2 text-right",
-          isLight ? "text-gray-400" : "text-white/20"
+          "text-white/20"
         )}>
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
@@ -102,8 +96,6 @@ export const ChatInput = ({ onSend, isLoading }: ChatInputProps) => {
   const [input, setInput] = React.useState('');
   const [isListening, setIsListening] = React.useState(false);
   const [imagePreview, setImagePreview] = React.useState<string | null>(null);
-  const { theme } = useApp();
-  const isLight = theme === 'light';
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -192,9 +184,7 @@ export const ChatInput = ({ onSend, isLoading }: ChatInputProps) => {
   return (
     <div className={cn(
       "p-4 pb-24 w-full z-40",
-      isLight 
-        ? "bg-gradient-to-t from-[#faf9f7] via-[#faf9f7] to-transparent" 
-        : "bg-gradient-to-t from-background via-background to-transparent"
+      "bg-gradient-to-t from-background via-background to-transparent"
     )}>
       
       {/* Image Preview */}
@@ -202,7 +192,7 @@ export const ChatInput = ({ onSend, isLoading }: ChatInputProps) => {
         <div className="mb-4 relative inline-block">
           <img src={imagePreview} alt="Preview" className={cn(
             "h-20 w-20 object-cover rounded-xl border",
-            isLight ? "border-green-300" : "border-neon-green/30"
+            "border-neon-green/30"
           )} />
           <button 
             onClick={removeImage}
@@ -219,14 +209,12 @@ export const ChatInput = ({ onSend, isLoading }: ChatInputProps) => {
            onClick={toggleListening}
            className={cn(
              "flex items-center justify-center w-12 h-12 rounded-full active:scale-95 transition-all group relative",
-             isLight 
-               ? "bg-white border border-gray-200 shadow-sm text-blue-600 hover:bg-blue-50"
-               : "glass-card hover:bg-white/10 text-neon-blue",
-             isListening && (isLight ? "bg-blue-100 animate-pulse" : "animate-pulse bg-neon-blue/20")
+             "glass-card hover:bg-white/10 text-neon-blue",
+             isListening && "animate-pulse bg-neon-blue/20"
            )}
          >
-            <Mic size={20} className={!isLight ? "group-hover:drop-shadow-[0_0_8px_rgba(0,243,255,0.5)]" : ""} />
-            {isListening && <span className={cn("absolute -bottom-1 w-1 h-1 rounded-full", isLight ? "bg-blue-600" : "bg-neon-blue")} />}
+            <Mic size={20} className={"group-hover:drop-shadow-[0_0_8px_rgba(0,243,255,0.5)]"} />
+            {isListening && <span className={cn("absolute -bottom-1 w-1 h-1 rounded-full", "bg-neon-blue")} />}
          </button>
          
          <input 
@@ -241,12 +229,10 @@ export const ChatInput = ({ onSend, isLoading }: ChatInputProps) => {
            onClick={() => fileInputRef.current?.click()}
            className={cn(
              "flex items-center justify-center w-12 h-12 rounded-full active:scale-95 transition-all group",
-             isLight 
-               ? "bg-white border border-gray-200 shadow-sm text-green-600 hover:bg-green-50"
-               : "glass-card hover:bg-white/10 text-neon-green"
+             "glass-card hover:bg-white/10 text-neon-green"
            )}
          >
-            <Camera size={20} className={!isLight ? "group-hover:drop-shadow-[0_0_8px_rgba(57,255,20,0.5)]" : ""} />
+            <Camera size={20} className={"group-hover:drop-shadow-[0_0_8px_rgba(57,255,20,0.5)]"} />
          </button>
       </div>
 
@@ -259,9 +245,7 @@ export const ChatInput = ({ onSend, isLoading }: ChatInputProps) => {
           placeholder={imagePreview ? "Ajoute une légende..." : "J'ai payé 15 balles..."}
           className={cn(
             "w-full rounded-2xl px-4 py-3 min-h-[50px] max-h-[120px] text-sm focus:outline-none transition-all resize-none scrollbar-hide",
-            isLight 
-              ? "bg-white border border-gray-200 text-gray-800 focus:border-green-400 focus:ring-2 focus:ring-green-100 placeholder:text-gray-400"
-              : "bg-white/5 border border-white/10 text-white focus:border-neon-green/50 focus:bg-white/10 placeholder:text-gray-600"
+            "bg-white/5 border border-white/10 text-white focus:border-neon-green/50 focus:bg-white/10 placeholder:text-gray-600"
           )}
           rows={1}
         />
@@ -271,12 +255,8 @@ export const ChatInput = ({ onSend, isLoading }: ChatInputProps) => {
           className={cn(
             "h-[50px] w-[50px] rounded-2xl flex items-center justify-center transition-all duration-300",
             (input.trim() || imagePreview)
-              ? isLight 
-                ? "bg-green-500 text-white hover:bg-green-600 shadow-md" 
-                : "bg-neon-green/20 text-neon-green hover:bg-neon-green hover:text-black shadow-[0_0_15px_rgba(57,255,20,0.2)]"
-              : isLight
-                ? "bg-gray-100 text-gray-400"
-                : "bg-white/5 text-gray-500"
+              ? "bg-neon-green/20 text-neon-green hover:bg-neon-green hover:text-black shadow-[0_0_15px_rgba(57,255,20,0.2)]"
+              : "bg-white/5 text-gray-500"
           )}
         >
           <Send size={20} />
