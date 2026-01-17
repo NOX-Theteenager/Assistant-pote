@@ -11,7 +11,7 @@ interface BankConnectModalProps {
 }
 
 export const BankConnectModal = ({ isOpen, onClose }: BankConnectModalProps) => {
-    const { addBankAccount, theme } = useApp();
+    const { addBankAccount } = useApp();
     const [step, setStep] = useState<'select' | 'connecting' | 'success'>('select');
     const [selectedProvider, setSelectedProvider] = useState<'mono' | 'gocardless' | null>(null);
 
@@ -86,7 +86,7 @@ export const BankConnectModal = ({ isOpen, onClose }: BankConnectModalProps) => 
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
                 >
-                    <div className={cn("w-full max-w-sm p-6 rounded-3xl relative overflow-hidden", theme === 'light' ? "bg-white" : "bg-gray-900 border border-white/10")}>
+                    <div className={cn("w-full max-w-sm p-6 rounded-3xl relative overflow-hidden", "bg-gray-900 border border-white/10")}>
                         <button onClick={onClose} className="absolute top-4 right-4 opacity-50 hover:opacity-100"><X size={20} /></button>
                         
                         {step === 'select' && (

@@ -8,8 +8,7 @@ interface ShameGaugeProps {
 }
 
 export const ShameGauge = ({ className }: ShameGaugeProps) => {
-    const { transactions, theme } = useApp();
-    const isLight = theme === 'light';
+    const { transactions } = useApp();
     
     // Calculate shame level based on Wants vs Needs ratio
     const wants = transactions.filter(t => t.type === 'want' && t.is_expense).reduce((acc, t) => acc + t.amount, 0);
@@ -32,9 +31,9 @@ export const ShameGauge = ({ className }: ShameGaugeProps) => {
     const MoodIcon = mood.icon;
     
     return (
-        <div className={cn("glass-card p-4 rounded-2xl", className, isLight && "bg-white/90 border-gray-200")}>
+        <div className={cn("glass-card p-4 rounded-2xl", className)}>
             <div className="flex items-center justify-between mb-3">
-                <span className={cn("text-xs uppercase tracking-wider font-bold", isLight ? "text-gray-500" : "opacity-50")}>
+                <span className={cn("text-xs uppercase tracking-wider font-bold", "opacity-50")}>
                     Jauge de Honte
                 </span>
                 <motion.div
@@ -49,7 +48,7 @@ export const ShameGauge = ({ className }: ShameGaugeProps) => {
             </div>
             
             {/* Gauge Bar */}
-            <div className={cn("h-3 rounded-full overflow-hidden mb-2", isLight ? "bg-gray-100" : "bg-black/30")}>
+            <div className={cn("h-3 rounded-full overflow-hidden mb-2", "bg-black/30")}>
                 <motion.div 
                     className={cn("h-full rounded-full", mood.bg)}
                     initial={{ width: 0 }}
@@ -60,7 +59,7 @@ export const ShameGauge = ({ className }: ShameGaugeProps) => {
             
             <div className="flex justify-between items-center">
                 <span className={cn("text-xs", mood.color)}>{mood.label}</span>
-                <span className={cn("text-xs font-mono", isLight ? "text-gray-400" : "opacity-40")}>
+                <span className={cn("text-xs font-mono", "opacity-40")}>
                     {shamePercent}% envies
                 </span>
             </div>
@@ -70,8 +69,7 @@ export const ShameGauge = ({ className }: ShameGaugeProps) => {
 
 // Mascot Component - Reacts to shame level
 export const Mascot = () => {
-    const { transactions, theme } = useApp();
-    const isLight = theme === 'light';
+    const { transactions } = useApp();
     
     const wants = transactions.filter(t => t.type === 'want' && t.is_expense).reduce((acc, t) => acc + t.amount, 0);
     const needs = transactions.filter(t => t.type === 'need' && t.is_expense).reduce((acc, t) => acc + t.amount, 0);
@@ -99,13 +97,13 @@ export const Mascot = () => {
         <motion.div 
             className={cn(
                 "flex items-center gap-3 p-3 rounded-2xl",
-                isLight ? "bg-gray-50" : "glass-panel"
+                "glass-panel"
             )}
             animate={{ y: [0, -5, 0] }}
             transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
         >
             <span className="text-4xl">{getEmoji()}</span>
-            <p className={cn("text-sm font-medium", isLight ? "text-gray-700" : "text-white/80")}>
+            <p className={cn("text-sm font-medium", "text-white/80")}>
                 {getMessage()}
             </p>
         </motion.div>

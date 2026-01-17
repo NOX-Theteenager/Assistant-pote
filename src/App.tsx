@@ -7,7 +7,7 @@ import { StatsView } from './components/features/Stats';
 import { SettingsView } from './components/features/Savings';
 
 const MainView = () => {
-  const { balance, messages, sendMessage, isLoading } = useApp();
+  const { messages, sendMessage, isLoading } = useApp();
   const [activeTab, setActiveTab] = useState('journal');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
