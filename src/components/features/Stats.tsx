@@ -19,6 +19,10 @@ export const StatsView = () => {
       const oneMonthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
       return date > oneMonthAgo;
     }
+    if (statsPeriod === 'quarterly') {
+      const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
+      return date > threeMonthsAgo;
+    }
     if (statsPeriod === 'yearly') {
       const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
       return date > oneYearAgo;

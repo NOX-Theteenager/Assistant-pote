@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { cn } from '../../lib/utils';
-import { PiggyBank, Briefcase, Plus, Trash2, Sun, Edit3, X, ChevronDown, Check, Wallet, Landmark, Building2 } from 'lucide-react';
+import { PiggyBank, Briefcase, Plus, Trash2, LogOut, Edit3, X, ChevronDown, Check, Wallet, Landmark, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BankConnectModal } from './BankConnectModal';
 import { BankService } from '../../services/bank';
@@ -113,7 +113,7 @@ export const SettingsView = () => {
         <div className="flex gap-2">
             {user && (
               <button onClick={logout} className="p-3 rounded-full glass-card hover:scale-105 transition-transform">
-                <Sun size={20} className="text-yellow-400" />
+                <LogOut size={20} className="text-red-400" />
               </button>
             )}
             <div className="relative group">
@@ -131,13 +131,17 @@ export const SettingsView = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-4 gap-4 mb-8">
         <button onClick={() => setStatsPeriod('weekly')} className="p-3 rounded-xl glass-card text-center text-xs">Hebdomadaire</button>
         <button onClick={() => setStatsPeriod('monthly')} className="p-3 rounded-xl glass-card text-center text-xs">Mensuel</button>
+        <button onClick={() => setStatsPeriod('quarterly')} className="p-3 rounded-xl glass-card text-center text-xs">Trimestriel</button>
         <button onClick={() => setStatsPeriod('yearly')} className="p-3 rounded-xl glass-card text-center text-xs">Annuel</button>
         <button onClick={() => setBackgroundTheme('neon')} className="p-3 rounded-xl glass-card text-center text-xs">Neon</button>
+        <button onClick={() => setBackgroundTheme('purple')} className="p-3 rounded-xl glass-card text-center text-xs">Purple</button>
+        <button onClick={() => setBackgroundTheme('blue')} className="p-3 rounded-xl glass-card text-center text-xs">Blue</button>
         <button onClick={() => setBackgroundTheme('fire')} className="p-3 rounded-xl glass-card text-center text-xs">Fire</button>
-        <button onClick={() => { if(confirm('Sûr ? Tout sera effacé.')) resetData(); }} className="p-3 rounded-xl glass-card text-center text-xs text-red-400">Réinitialiser</button>
+        <button onClick={() => setBackgroundTheme('ocean')} className="p-3 rounded-xl glass-card text-center text-xs">Ocean</button>
+        <button onClick={() => { if(confirm('Sûr ? Tout sera effacé.')) resetData(); }} className="p-3 rounded-xl glass-card text-center text-xs text-red-400 col-span-2">Réinitialiser</button>
       </div>
 
       {/* WEALTH CARD (New) */}
