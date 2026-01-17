@@ -13,13 +13,11 @@ interface NavItemProps {
   label: string;
   isActive?: boolean;
   onClick: () => void;
-  isLight?: boolean;
 }
 
 // --- Components ---
 
 export const BottomNav = ({ activeTab, onTabChange }: { activeTab: string, onTabChange: (tab: string) => void }) => {
-  
   return (
     <div className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none flex justify-center w-full max-w-md mx-auto">
       <div className={cn(

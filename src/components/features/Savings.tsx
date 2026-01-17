@@ -14,8 +14,7 @@ export const SettingsView = () => {
     recurringIncomes, addRecurringIncome, removeRecurringIncome,
     accounts, totalWealth,
     currency, setCurrency, formatPrice, resetData,
-    setStatsPeriod,
-    setBackgroundTheme
+    setStatsPeriod
   } = useApp();
   const { user, login, logout } = useAuth();
 
@@ -136,12 +135,7 @@ export const SettingsView = () => {
         <button onClick={() => setStatsPeriod('monthly')} className="p-3 rounded-xl glass-card text-center text-xs">Mensuel</button>
         <button onClick={() => setStatsPeriod('quarterly')} className="p-3 rounded-xl glass-card text-center text-xs">Trimestriel</button>
         <button onClick={() => setStatsPeriod('yearly')} className="p-3 rounded-xl glass-card text-center text-xs">Annuel</button>
-        <button onClick={() => setBackgroundTheme('neon')} className="p-3 rounded-xl glass-card text-center text-xs">Neon</button>
-        <button onClick={() => setBackgroundTheme('purple')} className="p-3 rounded-xl glass-card text-center text-xs">Purple</button>
-        <button onClick={() => setBackgroundTheme('blue')} className="p-3 rounded-xl glass-card text-center text-xs">Blue</button>
-        <button onClick={() => setBackgroundTheme('fire')} className="p-3 rounded-xl glass-card text-center text-xs">Fire</button>
-        <button onClick={() => setBackgroundTheme('ocean')} className="p-3 rounded-xl glass-card text-center text-xs">Ocean</button>
-        <button onClick={() => { if(confirm('Sûr ? Tout sera effacé.')) resetData(); }} className="p-3 rounded-xl glass-card text-center text-xs text-red-400 col-span-2">Réinitialiser</button>
+        <button onClick={() => { if(confirm('Sûr ? Tout sera effacé.')) resetData(); }} className="p-3 rounded-xl glass-card text-center text-xs text-red-400 col-span-4">Réinitialiser</button>
       </div>
 
       {/* WEALTH CARD (New) */}
