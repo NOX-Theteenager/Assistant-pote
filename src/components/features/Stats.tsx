@@ -5,16 +5,38 @@ import { ShameGauge, Mascot } from './Gamification';
 import { NeedsWantsDonut, BalanceEvolution } from './AdvancedCharts';
 
 export const StatsView = () => {
-  const { transactions, balance, formatPrice, theme } = useApp();
+  const { transactions, balance, formatPrice, statsPeriod } = useApp();
 
-  // 1. Calculate Stats
-  const hasIncome = transactions.some(t => t.type === 'income' || t.is_expense === false);
+  // 1. Filter transactions based on statsPeriod
+  const filteredTransactions = transactions.filter(t => {
+    const date = new Date(t.date);
+    const today = new Date();
+    if (statsPeriod === 'weekly') {
+      const oneWeekAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
+      return date > oneWeekAgo;
+    }
+    if (statsPeriod === 'monthly') {
+      const oneMonthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+      return date > oneMonthAgo;
+    }
+    if (statsPeriod === 'quarterly') {
+      const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
+      return date > threeMonthsAgo;
+    }
+    if (statsPeriod === 'yearly') {
+      const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+      return date > oneYearAgo;
+    }
+    return true;
+  });
+
+  // 2. Calculate Stats
   
-  const totalExpenses = transactions
+  const totalExpenses = filteredTransactions
       .filter(t => t.is_expense)
       .reduce((acc, t) => acc + t.amount, 0);
 
-  const totalIncome = transactions
+  const totalIncome = filteredTransactions
       .filter(t => !t.is_expense)
       .reduce((acc, t) => acc + t.amount, 0);
 
@@ -41,7 +63,7 @@ export const StatsView = () => {
   // Legacy Fallback: If no type, use old category list
   const usefulLegacy = ['food', 'bills', 'transport', 'loyer', 'courses', 'facture', 'pharmacie'];
   
-  const needTotal = transactions
+  const needTotal = filteredTransactions
     .filter(t => t.is_expense) // Only expenses
     .filter(t => {
         if (t.type) return t.type === 'need';
@@ -49,7 +71,7 @@ export const StatsView = () => {
     })
     .reduce((acc, t) => acc + t.amount, 0);
 
-  const wantTotal = transactions
+  const wantTotal = filteredTransactions
     .filter(t => t.is_expense)
     .filter(t => {
         if (t.type) return t.type === 'want';
@@ -61,7 +83,7 @@ export const StatsView = () => {
   const totalExp = needTotal + wantTotal || 1; 
 
   return (
-    <div className={cn("p-6 h-full overflow-y-auto pb-24", theme === 'light' ? 'text-gray-800' : 'text-white')}>
+    <div className={cn("p-6 h-full overflow-y-auto pb-24", 'text-white')}>
        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
         <Award className="text-neon-blue" />
         Bulletin Hebdo
@@ -126,10 +148,10 @@ export const StatsView = () => {
       <div>
         <h3 className="font-bold mb-4">Derniers Mouvements</h3>
         <div className="space-y-3">
-            {transactions.slice(-5).reverse().map((t, i) => (
+            {filteredTransactions.slice(-5).reverse().map((t, i) => (
                 <div key={i} className="flex justify-between items-center p-3 glass-panel rounded-xl">
                     <div className="flex flex-col">
-                        <span className="font-medium capitalize">{t.category}</span>
+                        <span className="font-medium capitalize">{t.name}</span>
                         <span className="text-xs opacity-40">{new Date(t.date).toLocaleDateString()}</span>
                     </div>
                     <span className={cn("font-mono font-bold", !t.is_expense ? "text-neon-green" : t.type === 'want' ? "text-neon-red" : "text-orange-400")}>
@@ -137,7 +159,7 @@ export const StatsView = () => {
                     </span>
                 </div>
             ))}
-            {transactions.length === 0 && (
+            {filteredTransactions.length === 0 && (
                 <p className="opacity-30 text-center text-sm py-4">Rien à signaler chef.</p>
             )}
         </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { cn } from '../../lib/utils';
-import { PiggyBank, Briefcase, Settings, Plus, Trash2, Sun, Moon, Edit3, Coins, X, ChevronDown, Check, Wallet, Landmark } from 'lucide-react';
+import { PiggyBank, Briefcase, Plus, Trash2, LogOut, Edit3, X, ChevronDown, Check, Wallet, Landmark, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BankConnectModal } from './BankConnectModal';
 import { BankService } from '../../services/bank';
@@ -13,7 +13,8 @@ export const SettingsView = () => {
     savingsGoals, addSavingsGoal, addToSavingsGoal, deleteSavingsGoal,
     recurringIncomes, addRecurringIncome, removeRecurringIncome,
     accounts, totalWealth,
-    theme, toggleTheme, currency, setCurrency, formatPrice, resetData 
+    currency, setCurrency, formatPrice, resetData,
+    setStatsPeriod
   } = useApp();
   const { user, login, logout } = useAuth();
 
@@ -80,13 +81,13 @@ export const SettingsView = () => {
   const visibleIncomes = showIncomes ? recurringIncomes : recurringIncomes.slice(0, 3);
 
   return (
-    <div className={cn("p-6 h-full overflow-y-auto pb-24", theme === 'light' ? 'text-gray-800' : 'text-white')}>
+    <div className={cn("p-6 h-full overflow-y-auto pb-24", "text-white")}>
       
       {/* Header Profile */}
       <div className="flex justify-between items-start mb-8">
         <div>
             {/* <h2 className="text-3xl font-bold flex items-center gap-2">
-                <Settings className={theme === 'light' ? "text-gray-600" : "text-white"} />
+                <Settings className="text-white" />
                 Profil
             </h2> */}
              {user ? (
@@ -97,7 +98,7 @@ export const SettingsView = () => {
                  </div>
              ) : (
                 <div className="mt-2">
-                    <p className={cn("text-sm mb-2", theme === 'light' ? "text-gray-500" : "opacity-50")}>Gère ton empire (ou tes dettes).</p>
+                    <p className={cn("text-sm mb-2", "opacity-50")}>Gère ton empire (ou tes dettes).</p>
                     <button 
                         onClick={login}
                         className="bg-white text-black px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 hover:bg-gray-200 transition-colors"
@@ -109,12 +110,11 @@ export const SettingsView = () => {
              )}
         </div>
         <div className="flex gap-2">
-            <button 
-                onClick={toggleTheme}
-                className="p-3 rounded-full glass-card hover:scale-105 transition-transform"
-            >
-                {theme === 'light' ? <Moon size={20} className="text-gray-800" /> : <Sun size={20} className="text-yellow-400" />}
-            </button>
+            {user && (
+              <button onClick={logout} className="p-3 rounded-full glass-card hover:scale-105 transition-transform">
+                <LogOut size={20} className="text-red-400" />
+              </button>
+            )}
             <div className="relative group">
                 <button className="p-3 rounded-full glass-card hover:scale-105 transition-transform text-neon-blue font-bold text-xs flex items-center justify-center w-12 h-12">
                     {currency}
@@ -128,6 +128,14 @@ export const SettingsView = () => {
                 </div>
             </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <button onClick={() => setStatsPeriod('weekly')} className="p-3 rounded-xl glass-card text-center text-xs">Hebdomadaire</button>
+        <button onClick={() => setStatsPeriod('monthly')} className="p-3 rounded-xl glass-card text-center text-xs">Mensuel</button>
+        <button onClick={() => setStatsPeriod('quarterly')} className="p-3 rounded-xl glass-card text-center text-xs">Trimestriel</button>
+        <button onClick={() => setStatsPeriod('yearly')} className="p-3 rounded-xl glass-card text-center text-xs">Annuel</button>
+        <button onClick={() => { if(confirm('Sûr ? Tout sera effacé.')) resetData(); }} className="p-3 rounded-xl glass-card text-center text-xs text-red-400 col-span-4">Réinitialiser</button>
       </div>
 
       {/* WEALTH CARD (New) */}
@@ -306,7 +314,7 @@ export const SettingsView = () => {
                  <div className="flex flex-col gap-1 w-20">
                      <label className="text-[10px] uppercase tracking-wider opacity-50">Jour</label>
                      <select 
-                        className={cn("bg-transparent border-b border-white/10 text-sm py-1 outline-none", theme === 'light' && "bg-white/50")}
+                        className={cn("bg-transparent border-b border-white/10 text-sm py-1 outline-none")}
                         value={newIncomeDay}
                         onChange={e => setNewIncomeDay(e.target.value)}
                      >
@@ -378,14 +386,14 @@ export const SettingsView = () => {
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
               >
-                  <div className={cn("w-full max-w-xs p-6 rounded-3xl relative", theme === 'light' ? "bg-white" : "bg-gray-900 border border-white/10")}>
+                  <div className={cn("w-full max-w-xs p-6 rounded-3xl relative", "bg-gray-900 border border-white/10")}>
                       <button onClick={() => setIsAddGoalOpen(false)} className="absolute top-4 right-4 opacity-50"><X size={20} /></button>
                       <h3 className="text-xl font-bold mb-4">Nouveau Coffre</h3>
                       <form onSubmit={handleAddGoal} className="space-y-4">
                           <div>
                               <label className="text-xs opacity-50 uppercase">Nom du projet</label>
                               <input 
-                                className={cn("w-full bg-transparent border-b py-2 outline-none font-bold", theme === 'light' ? "border-black/10" : "border-white/10")}
+                                className={cn("w-full bg-transparent border-b py-2 outline-none font-bold", "border-white/10")}
                                 placeholder="PS5, Voyage, ..."
                                 value={goalName}
                                 onChange={e => setGoalName(e.target.value)}
@@ -396,7 +404,7 @@ export const SettingsView = () => {
                               <label className="text-xs opacity-50 uppercase">Objectif ({currency})</label>
                               <input 
                                 type="number"
-                                className={cn("w-full bg-transparent border-b py-2 outline-none font-bold font-mono", theme === 'light' ? "border-black/10" : "border-white/10")}
+                                className={cn("w-full bg-transparent border-b py-2 outline-none font-bold font-mono", "border-white/10")}
                                 placeholder="500"
                                 value={goalTarget}
                                 onChange={e => setGoalTarget(e.target.value)}
@@ -418,7 +426,7 @@ export const SettingsView = () => {
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
               >
-                  <div className={cn("w-full max-w-xs p-6 rounded-3xl relative", theme === 'light' ? "bg-white" : "bg-gray-900 border border-white/10")}>
+                  <div className={cn("w-full max-w-xs p-6 rounded-3xl relative", "bg-gray-900 border border-white/10")}>
                       <button onClick={() => setActiveGoalId(null)} className="absolute top-4 right-4 opacity-50"><X size={20} /></button>
                       <h3 className="text-xl font-bold mb-1">Remplir le coffre</h3>
                       <p className="text-sm opacity-50 mb-6">Combien tu mets de côté ?</p>
@@ -428,7 +436,7 @@ export const SettingsView = () => {
                               <span className="absolute left-0 top-2 font-bold opacity-30">{currency}</span>
                               <input 
                                 type="number" 
-                                className={cn("w-full bg-transparent border-b py-2 pl-12 outline-none font-bold font-mono text-3xl", theme === 'light' ? "border-black/10" : "border-white/10")}
+                                className={cn("w-full bg-transparent border-b py-2 pl-12 outline-none font-bold font-mono text-3xl", "border-white/10")}
                                 placeholder="0"
                                 value={addMoneyAmount}
                                 onChange={e => setAddMoneyAmount(e.target.value)}

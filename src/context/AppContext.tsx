@@ -4,6 +4,8 @@ import { Message, Transaction } from '../components/chat/ChatInterfaces';
 import { formatCurrency } from '../lib/utils';
 import { RecurringIncome, checkRecurringIncomes } from '../lib/finance';
 import { BankAccount, BankService } from '../services/bank';
+import { useAuth } from './AuthContext';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 interface SavingsGoal {
@@ -14,7 +16,6 @@ interface SavingsGoal {
 }
 
 type StatsPeriod = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
-type BackgroundTheme = 'neon' | 'purple' | 'blue' | 'fire' | 'ocean';
 
 interface AppState {
   balance: number;
@@ -30,9 +31,6 @@ interface AppState {
   // Settings
   statsPeriod: StatsPeriod;
   setStatsPeriod: (period: StatsPeriod) => void;
-  backgroundTheme: BackgroundTheme;
-  setBackgroundTheme: (theme: BackgroundTheme) => void;
-
   currency: string;
   setCurrency: (currency: string) => void;
   formatPrice: (amount: number) => string;
@@ -60,6 +58,8 @@ const DEFAULT_GOAL: SavingsGoal = { id: 'default', name: 'Voyage', target: 500, 
 const DEFAULT_BALANCE = 100.00;
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+
   // --- State Initialization ---
   
   const [balance, setBalance] = useState(() => {
@@ -115,11 +115,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     return (localStorage.getItem('pote_stats_period') as StatsPeriod) || 'monthly';
   });
 
-  // Background Theme Setting
-  const [backgroundTheme, setBackgroundThemeState] = useState<BackgroundTheme>(() => {
-    return (localStorage.getItem('pote_bg_theme') as BackgroundTheme) || 'neon';
-  });
-
   const [lastLogin, setLastLogin] = useState<Date | null>(() => {
     const saved = localStorage.getItem('pote_last_login');
     return saved ? new Date(saved) : null;
@@ -160,12 +155,85 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     return formatCurrency(amount, currency);
   };
 
-  useEffect(() => localStorage.setItem('pote_balance', balance.toString()), [balance]);
-  useEffect(() => localStorage.setItem('pote_messages', JSON.stringify(messages)), [messages]);
-  useEffect(() => localStorage.setItem('pote_transactions', JSON.stringify(transactions)), [transactions]);
-  useEffect(() => localStorage.setItem('pote_savings_goals', JSON.stringify(savingsGoals)), [savingsGoals]);
-  useEffect(() => localStorage.setItem('pote_incomes', JSON.stringify(recurringIncomes)), [recurringIncomes]);
-  useEffect(() => localStorage.setItem('pote_theme', theme), [theme]);
+  // --- Data Sync Effects ---
+
+  // Save data to Firestore when state changes (if user is logged in)
+  useEffect(() => {
+    if (user) {
+      const data = {
+        balance: balance.toString(),
+        messages: JSON.stringify(messages),
+        transactions: JSON.stringify(transactions),
+        savingsGoals: JSON.stringify(savingsGoals),
+        recurringIncomes: JSON.stringify(recurringIncomes),
+        currency,
+        statsPeriod,
+        accounts: JSON.stringify(accounts),
+      };
+      setDoc(doc(db, 'users', user.uid), data, { merge: true });
+    }
+  }, [user, balance, messages, transactions, savingsGoals, recurringIncomes, currency, statsPeriod, accounts]);
+
+  // Load data from Firestore or migrate local data on user login
+  useEffect(() => {
+    const syncData = async () => {
+      if (user) {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+          // Returning user: Load data from Firestore
+          const data = userDoc.data();
+          setBalance(parseFloat(data.balance || DEFAULT_BALANCE.toString()));
+          setMessages(JSON.parse(data.messages || '[]'));
+          setTransactions(JSON.parse(data.transactions || '[]'));
+          setSavingsGoals(JSON.parse(data.savingsGoals || '[]'));
+          setRecurringIncomes(JSON.parse(data.recurringIncomes || '[]'));
+          setCurrencyState(data.currency || 'EUR');
+          setStatsPeriodState(data.statsPeriod || 'monthly');
+          setAccounts(JSON.parse(data.accounts || '[]'));
+        } else {
+          // First login: Migrate local data to Firestore
+          const localData = {
+            balance: localStorage.getItem('pote_balance') || DEFAULT_BALANCE.toString(),
+            messages: localStorage.getItem('pote_messages') || '[]',
+            transactions: localStorage.getItem('pote_transactions') || '[]',
+            savingsGoals: localStorage.getItem('pote_savings_goals') || '[]',
+            recurringIncomes: localStorage.getItem('pote_incomes') || '[]',
+            currency: localStorage.getItem('pote_currency') || 'EUR',
+            statsPeriod: localStorage.getItem('pote_stats_period') || 'monthly',
+            accounts: localStorage.getItem('pote_accounts') || '[]',
+            createdAt: new Date().toISOString(),
+            email: user.email,
+            displayName: user.displayName,
+          };
+          await setDoc(userDocRef, localData);
+        }
+      } else {
+        // User logged out: Reset to default/local state
+        setBalance(localStorage.getItem('pote_balance') ? parseFloat(localStorage.getItem('pote_balance')!) : DEFAULT_BALANCE);
+        setMessages(localStorage.getItem('pote_messages') ? JSON.parse(localStorage.getItem('pote_messages')!) : []);
+        setTransactions(localStorage.getItem('pote_transactions') ? JSON.parse(localStorage.getItem('pote_transactions')!) : []);
+        setSavingsGoals(localStorage.getItem('pote_savings_goals') ? JSON.parse(localStorage.getItem('pote_savings_goals')!) : [DEFAULT_GOAL]);
+        setRecurringIncomes(localStorage.getItem('pote_incomes') ? JSON.parse(localStorage.getItem('pote_incomes')!) : []);
+        setCurrencyState(localStorage.getItem('pote_currency') || 'EUR');
+        setStatsPeriodState((localStorage.getItem('pote_stats_period') as StatsPeriod) || 'monthly');
+        setAccounts(localStorage.getItem('pote_accounts') ? JSON.parse(localStorage.getItem('pote_accounts')!) : []);
+      }
+    };
+    syncData();
+  }, [user]);
+
+  // Local storage persistence (for logged-out users)
+  useEffect(() => { if (!user) localStorage.setItem('pote_balance', balance.toString()) }, [balance, user]);
+  useEffect(() => { if (!user) localStorage.setItem('pote_messages', JSON.stringify(messages)) }, [messages, user]);
+  useEffect(() => { if (!user) localStorage.setItem('pote_transactions', JSON.stringify(transactions)) }, [transactions, user]);
+  useEffect(() => { if (!user) localStorage.setItem('pote_savings_goals', JSON.stringify(savingsGoals)) }, [savingsGoals, user]);
+  useEffect(() => { if (!user) localStorage.setItem('pote_incomes', JSON.stringify(recurringIncomes)) }, [recurringIncomes, user]);
+  useEffect(() => { if (!user) localStorage.setItem('pote_currency', currency); }, [currency, user]);
+  useEffect(() => { if (!user) localStorage.setItem('pote_stats_period', statsPeriod); }, [statsPeriod, user]);
+  useEffect(() => { if (!user) localStorage.setItem('pote_accounts', JSON.stringify(accounts)); }, [accounts, user]);
+
 
   // Check Recurring Income on Mount
   useEffect(() => {
@@ -182,7 +250,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
                 is_expense: false,
                 date: new Date().toISOString(),
                 currency: currency,
-                type: 'income'
+                type: 'income',
+                name: inc.name
             };
             setTransactions(prev => [...prev, newTx]);
         });
@@ -204,20 +273,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.setItem('pote_last_login', now.toISOString());
   }, []);
 
-  // Theme Application
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.documentElement.style.setProperty('--bg-primary', '#000000');
-      document.documentElement.style.setProperty('--glass-bg', 'rgba(255, 255, 255, 0.05)');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.style.setProperty('--bg-primary', '#f3f4f6'); 
-      document.documentElement.style.setProperty('--glass-bg', 'rgba(0, 0, 0, 0.05)');
-    }
-  }, [theme]);
-
-
   // --- Actions ---
 
   const updateBalance = (newBalance: number) => setBalance(newBalance);
@@ -230,8 +285,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const removeRecurringIncome = (id: string) => {
     setRecurringIncomes(prev => prev.filter(i => i.id !== id));
   };
-
-  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const addSavingsGoal = (name: string, target: number) => {
     const newGoal: SavingsGoal = {
@@ -342,7 +395,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             is_expense: isExpense,
             date: new Date().toISOString(),
             currency: result.transaction.currency || 'EUR',
-            type: result.transaction.type // Use new type from Gemini
+            type: result.transaction.type, // Use new type from Gemini
+            name: result.transaction.name || text
           };
           setTransactions(prev => [...prev, neTx]);
       }
@@ -359,7 +413,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
                 category: result.transaction.category,
                 is_expense: result.transaction.is_expense !== false,
                 date: new Date().toISOString(),
-                currency: 'EUR'
+                currency: 'EUR',
+                name: result.transaction.name || text
             } : undefined,
             sentiment: result.sentiment
         }
@@ -384,9 +439,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <AppContext.Provider value={{ 
         balance, messages, transactions, savingsGoals, currency, isLoading, 
-        recurringIncomes, theme, accounts, totalWealth,
+        recurringIncomes, accounts, totalWealth,
         sendMessage, addSavingsGoal, addToSavingsGoal, deleteSavingsGoal, resetData, setCurrency, formatPrice,
-        addRecurringIncome, removeRecurringIncome, updateBalance, toggleTheme, addBankAccount: (acc) => setAccounts(prev => [...prev, acc])
+        addRecurringIncome, removeRecurringIncome, updateBalance, addBankAccount: (acc) => setAccounts(prev => [...prev, acc]),
+        statsPeriod, setStatsPeriod: setStatsPeriodState
     }}>
       {children}
     </AppContext.Provider>

@@ -4,30 +4,51 @@ import { cn } from '../../lib/utils';
 
 // Donut Chart - Needs vs Wants
 export const NeedsWantsDonut = ({ className }: { className?: string }) => {
-    const { transactions, theme, formatPrice } = useApp();
-    const isLight = theme === 'light';
+    const { transactions, formatPrice, statsPeriod } = useApp();
+
+    const filteredTransactions = transactions.filter(t => {
+        const date = new Date(t.date);
+        const today = new Date();
+        if (statsPeriod === 'weekly') {
+          const oneWeekAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
+          return date > oneWeekAgo;
+        }
+        if (statsPeriod === 'monthly') {
+          const oneMonthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+          return date > oneMonthAgo;
+        }
+        if (statsPeriod === 'quarterly') {
+            const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
+            return date > threeMonthsAgo;
+        }
+        if (statsPeriod === 'yearly') {
+          const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+          return date > oneYearAgo;
+        }
+        return true; // Should not happen with current UI
+    });
     
-    const wants = transactions.filter(t => t.type === 'want' && t.is_expense).reduce((acc, t) => acc + t.amount, 0);
-    const needs = transactions.filter(t => t.type === 'need' && t.is_expense).reduce((acc, t) => acc + t.amount, 0);
+    const wants = filteredTransactions.filter(t => t.type === 'want' && t.is_expense).reduce((acc, t) => acc + t.amount, 0);
+    const needs = filteredTransactions.filter(t => t.type === 'need' && t.is_expense).reduce((acc, t) => acc + t.amount, 0);
     
     const data = [
-        { name: 'Besoins', value: needs, color: isLight ? '#16a34a' : '#39ff14' },
-        { name: 'Envies', value: wants, color: isLight ? '#dc2626' : '#ff073a' },
+        { name: 'Besoins', value: needs, color: '#39ff14' },
+        { name: 'Envies', value: wants, color: '#ff073a' },
     ];
     
     const total = needs + wants;
     
     if (total === 0) {
         return (
-            <div className={cn("glass-card p-6 rounded-2xl text-center", className, isLight && "bg-white/90")}>
-                <p className={isLight ? "text-gray-500" : "opacity-50"}>Pas encore de données</p>
+            <div className={cn("glass-card p-6 rounded-2xl text-center", className)}>
+                <p className={"opacity-50"}>Pas encore de données</p>
             </div>
         );
     }
     
     return (
-        <div className={cn("glass-card p-4 rounded-2xl", className, isLight && "bg-white/90 border-gray-200")}>
-            <h4 className={cn("text-xs uppercase tracking-wider font-bold mb-4", isLight ? "text-gray-500" : "opacity-50")}>
+        <div className={cn("glass-card p-4 rounded-2xl", className)}>
+            <h4 className={cn("text-xs uppercase tracking-wider font-bold mb-4", "opacity-50")}>
                 Besoins vs Envies
             </h4>
             <div className="flex items-center gap-4">
@@ -53,7 +74,7 @@ export const NeedsWantsDonut = ({ className }: { className?: string }) => {
                         <div key={item.name} className="flex justify-between items-center">
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                                <span className={cn("text-sm", isLight ? "text-gray-700" : "text-white/80")}>{item.name}</span>
+                                <span className={cn("text-sm", "text-white/80")}>{item.name}</span>
                             </div>
                             <span className="text-sm font-mono">{formatPrice(item.value)}</span>
                         </div>
@@ -64,39 +85,53 @@ export const NeedsWantsDonut = ({ className }: { className?: string }) => {
     );
 };
 
-// Line Chart - Balance Evolution (last 7 days)
+// Line Chart - Balance Evolution (dynamic)
 export const BalanceEvolution = ({ className }: { className?: string }) => {
-    const { transactions, balance, theme, formatPrice } = useApp();
-    const isLight = theme === 'light';
+    const { transactions, balance, statsPeriod, formatPrice } = useApp();
     
-    // Build balance history for last 7 days
-    const today = new Date();
+    const days = statsPeriod === 'weekly' ? 7 : statsPeriod === 'monthly' ? 30 : statsPeriod === 'quarterly' ? 90 : 365;
+    
+    // Build balance history by starting from today and working backwards
     const data = [];
-    let runningBalance = balance;
-    
-    for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
+    let runningBalance = balance; // Start with the current balance
+
+    // Create a map of transactions by date for efficient lookup
+    const transactionsByDate = transactions.reduce((acc, t) => {
+        const date = t.date;
+        if (!acc[date]) {
+            acc[date] = [];
+        }
+        acc[date].push(t);
+        return acc;
+    }, {} as Record<string, typeof transactions>);
+
+    for (let i = 0; i < days; i++) {
+        const date = new Date();
         date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split('T')[0];
-        
-        // Get transactions for this day
-        const dayTrans = transactions.filter(t => t.date === dateStr);
-        const dayChange = dayTrans.reduce((acc, t) => {
-            return acc + (t.is_expense ? -t.amount : t.amount);
-        }, 0);
-        
-        // For simplicity, we reconstruct backwards
+
+        // Add data point for the current day *before* reverse calculating
         data.push({
-            name: date.toLocaleDateString('fr-FR', { weekday: 'short' }),
+            name: date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }),
             balance: runningBalance,
         });
+
+        // Find transactions for this day and reverse their effect
+        const dayTrans = transactionsByDate[dateStr] || [];
+        const dayChange = dayTrans.reduce((acc, t) => acc + (t.is_expense ? -t.amount : t.amount), 0);
+
+        // To find the balance of the *previous* day, we reverse today's changes
+        runningBalance -= dayChange;
     }
     
-    const strokeColor = isLight ? '#16a34a' : '#39ff14';
+    // The loop generates dates from today backwards, so we reverse the array for the chart
+    data.reverse();
+
+    const strokeColor = '#39ff14';
     
     return (
-        <div className={cn("glass-card p-4 rounded-2xl", className, isLight && "bg-white/90 border-gray-200")}>
-            <h4 className={cn("text-xs uppercase tracking-wider font-bold mb-4", isLight ? "text-gray-500" : "opacity-50")}>
+        <div className={cn("glass-card p-4 rounded-2xl", className)}>
+            <h4 className={cn("text-xs uppercase tracking-wider font-bold mb-4", "opacity-50")}>
                 Évolution du solde
             </h4>
             <ResponsiveContainer width="100%" height={150}>
@@ -105,13 +140,13 @@ export const BalanceEvolution = ({ className }: { className?: string }) => {
                         dataKey="name" 
                         axisLine={false} 
                         tickLine={false} 
-                        tick={{ fontSize: 10, fill: isLight ? '#6b7280' : '#9ca3af' }}
+                        tick={{ fontSize: 10, fill: '#9ca3af' }}
                     />
                     <YAxis hide />
                     <Tooltip 
                         formatter={(value) => [formatPrice(value as number), 'Solde']}
                         contentStyle={{ 
-                            backgroundColor: isLight ? '#fff' : '#1a1a1a', 
+                            backgroundColor: '#1a1a1a',
                             border: 'none', 
                             borderRadius: '8px',
                             boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
