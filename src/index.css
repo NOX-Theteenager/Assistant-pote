@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Premium Light Mode - Warm, Clean, Modern */
+    --bg-primary: #faf9f7;
+    --bg-secondary: #f5f3f0;
+    --text-main: #1a1a1a;
+    --text-secondary: #6b7280;
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --card-bg: rgba(255, 255, 255, 0.9);
+    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    --accent-green: #16a34a;
+    --accent-red: #dc2626;
+    --accent-purple: #8b5cf6;
+    --accent-blue: #3b82f6;
+  }
+
+  :root.dark {
+    /* Dark Mode - Stays the same */
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --text-main: #ffffff;
+    --text-secondary: #9ca3af;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --card-bg: rgba(255, 255, 255, 0.05);
+    --card-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+    --accent-green: #39ff14;
+    --accent-red: #ff073a;
+    --accent-purple: #a855f7;
+    --accent-blue: #00d9ff;
+  }
+
+  body {
+    @apply antialiased overflow-hidden transition-colors duration-300;
+    background-color: var(--bg-primary);
+    color: var(--text-main);
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+  }
+
+  #root {
+    @apply h-[100dvh] w-full flex justify-center items-center;
+    background: var(--bg-primary);
+  }
+}
+
+@layer components {
+  /* Glassmorphism Utilities */
+  .glass-panel {
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+  }
+  
+  .glass-card {
+    background-color: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s ease;
+  }
+  
+  .glass-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Neon Glows - Adjust for Light Mode? Maybe keep them as accents */
+  .neon-text-green {
+    text-shadow: 0 0 10px rgba(57, 255, 20, 0.5), 0 0 20px rgba(57, 255, 20, 0.3);
+  }
+  
+  .neon-text-red {
+    text-shadow: 0 0 10px rgba(255, 7, 58, 0.5), 0 0 20px rgba(255, 7, 58, 0.3);
+  }
+
+  .neon-border-green {
+    box-shadow: 0 0 10px rgba(57, 255, 20, 0.2), inset 0 0 10px rgba(57, 255, 20, 0.1);
+  }
+
+  /* Scrollbar Hide */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none; 
+    scrollbar-width: none; 
+  }
+}

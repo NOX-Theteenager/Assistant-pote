@@ -1,0 +1,17 @@
+{
+  "name": "Assistant Pote",
+  "short_name": "Pote",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "description": "Ton assistant budget honnête et sarcastique.",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ],
+  "orientation": "portrait"
+}
