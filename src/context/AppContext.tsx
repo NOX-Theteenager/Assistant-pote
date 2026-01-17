@@ -13,7 +13,6 @@ interface SavingsGoal {
 }
 
 type StatsPeriod = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
-type BackgroundTheme = 'neon' | 'purple' | 'blue' | 'fire' | 'ocean';
 
 interface AppState {
   balance: number;
@@ -29,8 +28,6 @@ interface AppState {
   // Settings
   statsPeriod: StatsPeriod;
   setStatsPeriod: (period: StatsPeriod) => void;
-  backgroundTheme: BackgroundTheme;
-  setBackgroundTheme: (theme: BackgroundTheme) => void;
   currency: string;
   setCurrency: (currency: string) => void;
   formatPrice: (amount: number) => string;
@@ -111,11 +108,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   // Stats Period Setting
   const [statsPeriod, setStatsPeriodState] = useState<StatsPeriod>(() => {
     return (localStorage.getItem('pote_stats_period') as StatsPeriod) || 'monthly';
-  });
-
-  // Background Theme Setting
-  const [backgroundTheme, setBackgroundThemeState] = useState<BackgroundTheme>(() => {
-    return (localStorage.getItem('pote_bg_theme') as BackgroundTheme) || 'neon';
   });
 
   const [lastLogin, setLastLogin] = useState<Date | null>(() => {
@@ -371,7 +363,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         recurringIncomes, accounts, totalWealth,
         sendMessage, addSavingsGoal, addToSavingsGoal, deleteSavingsGoal, resetData, setCurrency, formatPrice,
         addRecurringIncome, removeRecurringIncome, updateBalance, addBankAccount: (acc) => setAccounts(prev => [...prev, acc]),
-        statsPeriod, setStatsPeriod: setStatsPeriodState, backgroundTheme, setBackgroundTheme: setBackgroundThemeState
+        statsPeriod, setStatsPeriod: setStatsPeriodState
     }}>
       {children}
     </AppContext.Provider>

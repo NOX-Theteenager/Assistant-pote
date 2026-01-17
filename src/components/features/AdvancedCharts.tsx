@@ -4,10 +4,32 @@ import { cn } from '../../lib/utils';
 
 // Donut Chart - Needs vs Wants
 export const NeedsWantsDonut = ({ className }: { className?: string }) => {
-    const { transactions, formatPrice } = useApp();
+    const { transactions, formatPrice, statsPeriod } = useApp();
+
+    const filteredTransactions = transactions.filter(t => {
+        const date = new Date(t.date);
+        const today = new Date();
+        if (statsPeriod === 'weekly') {
+          const oneWeekAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
+          return date > oneWeekAgo;
+        }
+        if (statsPeriod === 'monthly') {
+          const oneMonthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+          return date > oneMonthAgo;
+        }
+        if (statsPeriod === 'quarterly') {
+            const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
+            return date > threeMonthsAgo;
+        }
+        if (statsPeriod === 'yearly') {
+          const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+          return date > oneYearAgo;
+        }
+        return true; // Should not happen with current UI
+    });
     
-    const wants = transactions.filter(t => t.type === 'want' && t.is_expense).reduce((acc, t) => acc + t.amount, 0);
-    const needs = transactions.filter(t => t.type === 'need' && t.is_expense).reduce((acc, t) => acc + t.amount, 0);
+    const wants = filteredTransactions.filter(t => t.type === 'want' && t.is_expense).reduce((acc, t) => acc + t.amount, 0);
+    const needs = filteredTransactions.filter(t => t.type === 'need' && t.is_expense).reduce((acc, t) => acc + t.amount, 0);
     
     const data = [
         { name: 'Besoins', value: needs, color: '#39ff14' },
@@ -67,27 +89,44 @@ export const NeedsWantsDonut = ({ className }: { className?: string }) => {
 export const BalanceEvolution = ({ className }: { className?: string }) => {
     const { transactions, balance, statsPeriod, formatPrice } = useApp();
     
-    const days = statsPeriod === 'weekly' ? 7 : statsPeriod === 'monthly' ? 30 : 365;
-
-    // Build balance history
-    const data = [];
-    let runningBalance = balance;
+    const days = statsPeriod === 'weekly' ? 7 : statsPeriod === 'monthly' ? 30 : statsPeriod === 'quarterly' ? 90 : 365;
     
-    for (let i = days - 1; i >= 0; i--) {
+    // Build balance history by starting from today and working backwards
+    const data = [];
+    let runningBalance = balance; // Start with the current balance
+
+    // Create a map of transactions by date for efficient lookup
+    const transactionsByDate = transactions.reduce((acc, t) => {
+        const date = t.date;
+        if (!acc[date]) {
+            acc[date] = [];
+        }
+        acc[date].push(t);
+        return acc;
+    }, {} as Record<string, typeof transactions>);
+
+    for (let i = 0; i < days; i++) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split('T')[0];
-        
-        const dayTrans = transactions.filter(t => t.date === dateStr);
-        const dayChange = dayTrans.reduce((acc, t) => acc + (t.is_expense ? -t.amount : t.amount), 0);
-        
+
+        // Add data point for the current day *before* reverse calculating
         data.push({
             name: date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }),
             balance: runningBalance,
         });
+
+        // Find transactions for this day and reverse their effect
+        const dayTrans = transactionsByDate[dateStr] || [];
+        const dayChange = dayTrans.reduce((acc, t) => acc + (t.is_expense ? -t.amount : t.amount), 0);
+
+        // To find the balance of the *previous* day, we reverse today's changes
         runningBalance -= dayChange;
     }
     
+    // The loop generates dates from today backwards, so we reverse the array for the chart
+    data.reverse();
+
     const strokeColor = '#39ff14';
     
     return (
