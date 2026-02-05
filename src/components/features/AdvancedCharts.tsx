@@ -1,6 +1,7 @@
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApp } from '../../context/AppContext';
 import { cn } from '../../lib/utils';
+import { Transaction } from '../chat/ChatInterfaces';
 
 // Donut Chart - Expenses vs Savings
 export const ExpensesSavingsDonut = ({ className }: { className?: string }) => {
@@ -9,8 +10,6 @@ export const ExpensesSavingsDonut = ({ className }: { className?: string }) => {
     const filteredTransactions = transactions.filter(t => {
         const date = new Date(t.date);
         const today = new Date();
-        const currentMonth = today.getMonth();
-        const currentYear = today.getFullYear();
         
         // Strictly current month as per "month" requirement in prompt, 
         // OR respect the global statsPeriod if the user toggled it.
@@ -54,8 +53,6 @@ export const ExpensesSavingsDonut = ({ className }: { className?: string }) => {
         { name: 'Dépenses', value: totalExpenses, color: '#ff073a' }, // Neon Red
         { name: 'Épargne', value: savings, color: '#39ff14' },       // Neon Green
     ];
-    
-    const total = totalExpenses + savings;
     
     return (
         <div className={cn("glass-card p-4 rounded-2xl", className)}>
@@ -117,14 +114,14 @@ export const BalanceEvolution = ({ className }: { className?: string }) => {
 
     // Create a map of transactions by date for efficient lookup
     // Normalize date to YYYY-MM-DD
-    const transactionsByDate = transactions.reduce((acc, t) => {
+    const transactionsByDate = transactions.reduce((acc: Record<string, Transaction[]>, t: Transaction) => {
         const dateStr = new Date(t.date).toISOString().split('T')[0];
         if (!acc[dateStr]) {
             acc[dateStr] = [];
         }
         acc[dateStr].push(t);
         return acc;
-    }, {} as Record<string, typeof transactions>);
+    }, {} as Record<string, Transaction[]>);
 
     for (let i = 0; i < days; i++) {
         const date = new Date();
@@ -141,7 +138,7 @@ export const BalanceEvolution = ({ className }: { className?: string }) => {
         // To go back in time, we REVERSE the transaction effect.
         // If today I spent 10, yesterday I had 10 more.
         const dayTrans = transactionsByDate[dateStr] || [];
-        const dayChange = dayTrans.reduce((acc, t) => {
+        const dayChange = dayTrans.reduce((acc: number, t: Transaction) => {
             // Expense reduces balance, so to go back, we ADD it.
             // Income increases balance, so to go back, we SUBTRACT it.
             return acc + (t.is_expense ? -t.amount : t.amount);

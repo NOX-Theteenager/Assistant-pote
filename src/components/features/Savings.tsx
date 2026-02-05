@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { cn } from '../../lib/utils';
-import { PiggyBank, Briefcase, Plus, Trash2, LogOut, Edit3, X, ChevronDown, Check, Wallet, Landmark, Building2, Bell, BellOff, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { PiggyBank, Plus, Trash2, LogOut, Edit3, X, ChevronDown, Check, Wallet, Landmark, Building2, Bell, BellOff, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BankConnectModal } from './BankConnectModal';
 import { BankService } from '../../services/bank';
