@@ -29,3 +29,17 @@ export const formatCurrency = (amount: number, currencyCode: string = 'EUR'): st
     return `${amount} ${currencyCode}`;
   }
 };
+
+export const convertCurrency = (amount: number, from: string, to: string): number => {
+    const rates: Record<string, number> = {
+        'EUR_USD': 1.08,
+        'EUR_XAF': 655.957, 
+        'USD_EUR': 0.92,
+        'USD_XAF': 600.0,
+        'XAF_EUR': 0.00155, // 1/655.957 approx
+        'XAF_USD': 0.0016
+    };
+    if (from === to) return amount;
+    const key = `${from}_${to}`;
+    return amount * (rates[key] || 1);
+};

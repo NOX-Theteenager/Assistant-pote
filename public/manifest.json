@@ -1,6 +1,6 @@
 {
   "name": "Budget Buddy",
-  "short_name": "Pote",
+  "short_name": "Buddy",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#050505",
@@ -8,8 +8,8 @@
   "description": "Ton assistant budget honnête et sarcastique.",
   "icons": [
     {
-      "src": "/vite.svg",
-      "type": "image/svg+xml",
+      "src": "/BudgetBuddy.png",
+      "type": "image/png",
       "sizes": "512x512"
     }
   ],

@@ -73,17 +73,20 @@ export class GeminiService {
     if (!imageBase64) {
          // Regex for "Word Number" or "Number Word" or just "Number"
          // Matches: "Burger 15", "15 Burger", "15"
-         // Doesn't match sentences: "J'ai mangé un burger à 15 euros" (> 4 words usually)
+         
          const words = text.split(' ').filter(w => w.trim().length > 0);
          const hasNumber = /\d+([.,]\d+)?/.test(text);
 
-         if (words.length <= 3 && hasNumber) {
+         // SKIP optimization for Income keywords to let AI handle the context (e.g., "reçu 50")
+         const lower = text.toLowerCase();
+         const isPotentialIncome = lower.includes('reçu') || lower.includes('recu') || lower.includes('gagné') || lower.includes('pote') || lower.includes('donné') || lower.includes('rembourse');
+
+         if (words.length <= 3 && hasNumber && !isPotentialIncome) {
             console.log("Optimized Local Processing Triggered");
             const amountMatch = text.match(/(\d+([.,]\d{1,2})?)/);
             if (amountMatch) {
                 const amount = parseFloat(amountMatch[0].replace(',', '.'));
                 // Simple category guess
-                const lower = text.toLowerCase();
                 let category = "Autre";
                 let type: 'need' | 'want' = 'want';
 
@@ -139,8 +142,23 @@ export class GeminiService {
       }
 
       const result = await this.model.generateContent(parts);
-      const output = JSON.parse(result.response.text());
-      return output;
+      const textResponse = result.response.text();
+      
+      try {
+        // Attempt clean JSON parse
+        const output = JSON.parse(textResponse);
+        return output;
+      } catch (jsonError) {
+        console.warn("Gemini returned non-JSON:", textResponse);
+        // Attempt to find JSON in markdown block ```json ... ```
+        const jsonMatch = textResponse.match(/```json\n([\s\S]*?)\n```/) || textResponse.match(/```([\s\S]*?)```/);
+        if (jsonMatch && jsonMatch[1]) {
+           try {
+             return JSON.parse(jsonMatch[1]);
+           } catch (e) { /* ignore */ }
+        }
+        throw new Error("Invalid JSON response from Gemini");
+      }
     } catch (error) {
       console.error("Gemini Error:", error);
       

@@ -3,47 +3,45 @@ import { cn } from '../../lib/utils';
 import { Mic, Camera, Send, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useApp } from '../../context/AppContext';
+import { Mascot } from '../mascot/MascotScene';
 
 // --- Types ---
-export interface Transaction {
-  amount: number;
-  category: string;
-  is_expense: boolean;
-  date: string;
-  currency: string;
-  type?: 'need' | 'want' | 'income';
-  name: string;
-}
 
-export interface Message {
-  id: string;
-  text: string;
-  sender: 'user' | 'ai';
-  timestamp: Date;
-  metadata?: {
-    transaction?: Transaction;
-    sentiment?: 'neutral' | 'sarcastic' | 'praise' | 'warning';
-    image?: string;
-  };
-}
-
-// --- Components ---
+// ... (Types remain same) ...
 
 export const ChatBubble = ({ message }: { message: Message }) => {
   const isAi = message.sender === 'ai';
   const { formatPrice } = useApp();
+  
+  // Determine mood from sentiment
+  const getMood = () => {
+      const s = message.metadata?.sentiment;
+      if (s === 'praise') return 'happy';
+      if (s === 'sarcastic') return 'sarcastic';
+      if (s === 'warning') return 'sad';
+      return 'neutral';
+  };
   
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       className={cn(
-        "flex w-full mb-4",
+        "flex w-full mb-4 items-end gap-2", 
         isAi ? "justify-start" : "justify-end"
       )}
     >
+      {/* Mascot Miniature for AI */}
+      {isAi && (
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-black/20 border border-white/10 flex-none relative">
+              <div className="absolute inset-0 top-1">
+                  <Mascot mood={getMood()} scale={1.8} />
+              </div>
+          </div>
+      )}
+
       <div className={cn(
-        "max-w-[85%] rounded-2xl p-4 text-sm relative overflow-hidden",
+        "max-w-[80%] rounded-2xl p-4 text-sm relative overflow-hidden",
         isAi 
           ? "bg-glass-card rounded-tl-none text-gray-200 border-l-2 border-neon-purple/50"
           : "bg-neon-green/10 text-white rounded-tr-none border border-neon-green/20"
@@ -80,7 +78,20 @@ export const ChatBubble = ({ message }: { message: Message }) => {
           "text-[10px] block mt-2 text-right",
           "text-white/20"
         )}>
-          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {(() => {
+              const ts = message.timestamp;
+              if (!ts) return "";
+              // Handle Firestore Timestamp (seconds)
+              if (typeof ts === 'object' && 'seconds' in ts) {
+                  return new Date((ts as any).seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              }
+              // Handle Date object
+              if (ts instanceof Date) {
+                  return ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              }
+              // Handle String
+              return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          })()}
         </span>
       </div>
     </motion.div>

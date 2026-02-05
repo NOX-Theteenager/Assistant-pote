@@ -1,41 +1,131 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { cn } from '../../lib/utils';
-import { PiggyBank, Briefcase, Plus, Trash2, LogOut, Edit3, X, ChevronDown, Check, Wallet, Landmark, Building2 } from 'lucide-react';
+import { PiggyBank, Briefcase, Plus, Trash2, LogOut, Edit3, X, ChevronDown, Check, Wallet, Landmark, Building2, Bell, BellOff, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BankConnectModal } from './BankConnectModal';
 import { BankService } from '../../services/bank';
 import { useAuth } from '../../context/AuthContext';
+
+// Simple reusable modal for adding recurring items
+const RecurringItemModal = ({ isOpen, onClose, onSave, type }: { isOpen: boolean, onClose: () => void, onSave: (name: string, amount: number, day: number) => void, type: 'income' | 'expense' }) => {
+    const [name, setName] = useState('');
+    const [amount, setAmount] = useState('');
+    const [day, setDay] = useState('1');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (name && amount) {
+            onSave(name, parseFloat(amount), parseInt(day));
+            setName('');
+            setAmount('');
+            setDay('1');
+            onClose();
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div 
+               initial={{ scale: 0.9, opacity: 0 }} 
+               animate={{ scale: 1, opacity: 1 }}
+               className="w-full max-w-xs p-6 rounded-3xl bg-gray-900 border border-white/10 relative"
+            >
+                <button onClick={onClose} className="absolute top-4 right-4 opacity-50"><X size={20} /></button>
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    {type === 'income' ? <ArrowUpCircle className="text-neon-green" /> : <ArrowDownCircle className="text-red-400" />}
+                    {type === 'income' ? 'Nouveau Revenu' : 'Nouvelle Charge'}
+                </h3>
+                
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="text-xs opacity-50 uppercase">Nom</label>
+                        <input 
+                            className="w-full bg-transparent border-b border-white/10 py-2 outline-none font-bold"
+                            placeholder={type === 'income' ? "Salaire, Alloc..." : "Loyer, Netflix..."}
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                            autoFocus
+                        />
+                    </div>
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="text-xs opacity-50 uppercase">Montant</label>
+                            <input 
+                                type="number"
+                                className="w-full bg-transparent border-b border-white/10 py-2 outline-none font-mono font-bold"
+                                placeholder="0"
+                                value={amount}
+                                onChange={e => setAmount(e.target.value)}
+                            />
+                        </div>
+                        <div className="w-20">
+                            <label className="text-xs opacity-50 uppercase">Jour</label>
+                            <select 
+                                className="w-full bg-transparent border-b border-white/10 py-2 outline-none"
+                                value={day}
+                                onChange={e => setDay(e.target.value)}
+                            >
+                                {[...Array(31)].map((_, i) => (
+                                    <option key={i+1} value={i+1} className="text-black">{i+1}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" className={cn("w-full py-3 font-bold rounded-xl mt-4", type === 'income' ? "bg-neon-green text-black" : "bg-red-500 text-white")}>
+                        Ajouter
+                    </button>
+                </form>
+            </motion.div>
+        </div>
+    );
+};
 
 export const SettingsView = () => {
   const { 
     balance, updateBalance, 
     savingsGoals, addSavingsGoal, addToSavingsGoal, deleteSavingsGoal,
     recurringIncomes, addRecurringIncome, removeRecurringIncome,
+    recurringExpenses, addRecurringExpense, removeRecurringExpense,
     accounts, totalWealth,
     currency, setCurrency, formatPrice, resetData,
-    setStatsPeriod
   } = useApp();
   const { user, login, logout } = useAuth();
 
   // Local state for UI
   const [showIncomes, setShowIncomes] = useState(false);
+  const [showExpenses, setShowExpenses] = useState(false);
   const [editingBalance, setEditingBalance] = useState(false);
   const [tempBalance, setTempBalance] = useState('');
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
   const [showAccounts, setShowAccounts] = useState(false);
   
+  // Notification State
+  const [notificationsEnabled, setNotificationsEnabled] = useState(Notification.permission === 'granted');
+
+  const requestNotificationPermission = async () => {
+      const permission = await Notification.requestPermission();
+      setNotificationsEnabled(permission === 'granted');
+      if (permission === 'granted') {
+          new Notification('Assistant Pote', { body: 'Notifications activées ! Je te rappellerai tes factures.' });
+      }
+  };
+  
   // Modals
   const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
+  const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
+  
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+
+  // Form states for Goals (kept inline as simple)
   const [goalName, setGoalName] = useState('');
   const [goalTarget, setGoalTarget] = useState('');
-
-  const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
   const [addMoneyAmount, setAddMoneyAmount] = useState('');
 
-  const [newIncomeName, setNewIncomeName] = useState('');
-  const [newIncomeAmount, setNewIncomeAmount] = useState('');
-  const [newIncomeDay, setNewIncomeDay] = useState('1');
 
   // --- Handlers ---
   const handleBalanceUpdate = () => {
@@ -65,20 +155,9 @@ export const SettingsView = () => {
       }
   };
 
-  const handleAddIncome = () => {
-      if (newIncomeName && newIncomeAmount) {
-          addRecurringIncome({
-              name: newIncomeName,
-              amount: parseFloat(newIncomeAmount),
-              dayOfMonth: parseInt(newIncomeDay)
-          });
-          setNewIncomeName('');
-          setNewIncomeAmount('');
-      }
-  };
-
-  // Limit incomes to 3 if not expanded
+  // Lists limiting
   const visibleIncomes = showIncomes ? recurringIncomes : recurringIncomes.slice(0, 3);
+  const visibleExpenses = showExpenses ? recurringExpenses : recurringExpenses.slice(0, 3);
 
   return (
     <div className={cn("p-6 h-full overflow-y-auto pb-24", "text-white")}>
@@ -86,15 +165,11 @@ export const SettingsView = () => {
       {/* Header Profile */}
       <div className="flex justify-between items-start mb-8">
         <div>
-            {/* <h2 className="text-3xl font-bold flex items-center gap-2">
-                <Settings className="text-white" />
-                Profil
-            </h2> */}
              {user ? (
                  <div className="flex items-center gap-2 mt-2">
                     {user.photoURL && <img src={user.photoURL} className="w-6 h-6 rounded-full" alt="User" />}
-                    <p className="text-sm opacity-50">Connecté en tant que {user.displayName}</p>
-                    <button onClick={logout} className="text-xs text-red-400 hover:text-red-300 underline ml-2">Déconnexion</button>
+                    <p className="text-sm opacity-50">{user.displayName}</p>
+                    
                  </div>
              ) : (
                 <div className="mt-2">
@@ -129,16 +204,8 @@ export const SettingsView = () => {
             </div>
         </div>
       </div>
-
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <button onClick={() => setStatsPeriod('weekly')} className="p-3 rounded-xl glass-card text-center text-xs">Hebdomadaire</button>
-        <button onClick={() => setStatsPeriod('monthly')} className="p-3 rounded-xl glass-card text-center text-xs">Mensuel</button>
-        <button onClick={() => setStatsPeriod('quarterly')} className="p-3 rounded-xl glass-card text-center text-xs">Trimestriel</button>
-        <button onClick={() => setStatsPeriod('yearly')} className="p-3 rounded-xl glass-card text-center text-xs">Annuel</button>
-        <button onClick={() => { if(confirm('Sûr ? Tout sera effacé.')) resetData(); }} className="p-3 rounded-xl glass-card text-center text-xs text-red-400 col-span-4">Réinitialiser</button>
-      </div>
-
-      {/* WEALTH CARD (New) */}
+      
+      {/* WEALTH CARD */}
       <div className="glass-card p-6 rounded-3xl mb-8 relative border-t border-white/10 overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10">
               <Wallet size={120} />
@@ -293,55 +360,21 @@ export const SettingsView = () => {
           </div>
       </div>
 
-      {/* Recurring Incomes */}
+      {/* Recurring Incomes Section */}
       <div className="mb-8">
-          <h3 className="font-bold mb-4 flex items-center gap-2">
-              <Briefcase className="text-neon-green" />
-              Revenus Fixes
-          </h3>
-          
-          <div className="glass-panel p-4 rounded-2xl mb-4">
-             <div className="grid grid-cols-[1fr,auto,auto,auto] gap-2 items-end">
-                 <div className="flex flex-col gap-1">
-                     <label className="text-[10px] uppercase tracking-wider opacity-50">Nom</label>
-                     <input 
-                        className="bg-transparent border-b border-white/10 focus:border-neon-green outline-none text-sm py-1" 
-                        placeholder="Ex: Salaire"
-                        value={newIncomeName}
-                        onChange={e => setNewIncomeName(e.target.value)}
-                     />
-                 </div>
-                 <div className="flex flex-col gap-1 w-20">
-                     <label className="text-[10px] uppercase tracking-wider opacity-50">Jour</label>
-                     <select 
-                        className={cn("bg-transparent border-b border-white/10 text-sm py-1 outline-none")}
-                        value={newIncomeDay}
-                        onChange={e => setNewIncomeDay(e.target.value)}
-                     >
-                         {[...Array(31)].map((_, i) => (
-                             <option key={i+1} value={i+1} className="text-black">{i+1}</option>
-                         ))}
-                     </select>
-                 </div>
-                 <div className="flex flex-col gap-1 w-24">
-                     <label className="text-[10px] uppercase tracking-wider opacity-50">Montant</label>
-                     <input 
-                        type="number"
-                        className="bg-transparent border-b border-white/10 focus:border-neon-green outline-none text-sm py-1" 
-                        placeholder="0"
-                        value={newIncomeAmount}
-                        onChange={e => setNewIncomeAmount(e.target.value)}
-                     />
-                 </div>
-                 <button 
-                    onClick={handleAddIncome}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-neon-green/20 text-neon-green hover:bg-neon-green hover:text-black mb-1"
-                 >
-                     <Plus size={16} />
-                 </button>
-             </div>
+          <div className="flex justify-between items-center mb-4">
+               <h3 className="font-bold flex items-center gap-2">
+                    <ArrowUpCircle className="text-neon-green" />
+                    Revenus Fixes
+               </h3>
+               <button 
+                    onClick={() => setIsIncomeModalOpen(true)}
+                    className="text-xs bg-neon-green/20 text-neon-green px-3 py-1 rounded-full hover:bg-neon-green hover:text-black transition-colors"
+                >
+                   + Nouveau
+               </button>
           </div>
-
+          
           <div className="space-y-2">
               {visibleIncomes.map((inc) => (
                   <div key={inc.id} className="flex justify-between items-center p-3 glass-panel rounded-xl border-l-2 border-neon-green">
@@ -357,6 +390,9 @@ export const SettingsView = () => {
                       </div>
                   </div>
               ))}
+              {recurringIncomes.length === 0 && (
+                   <p className="text-center opacity-30 text-xs italic">Aucun revenu fixe.</p>
+              )}
           </div>
 
           {recurringIncomes.length > 3 && (
@@ -369,14 +405,63 @@ export const SettingsView = () => {
           )}
       </div>
 
+      {/* Recurring Expenses (Charges) Section */}
+      <div className="mb-8">
+          <div className="flex justify-between items-center mb-4">
+               <h3 className="font-bold flex items-center gap-2">
+                    <ArrowDownCircle className="text-red-400" />
+                    Charges Fixes
+               </h3>
+               <div className="flex gap-2">
+                    <button 
+                         onClick={requestNotificationPermission}
+                         className={cn("p-1.5 rounded-full transition-colors", notificationsEnabled ? "text-neon-green bg-neon-green/10" : "text-white/30 hover:bg-white/10")}
+                         title="Activer les rappels"
+                    >
+                        {notificationsEnabled ? <Bell size={16} /> : <BellOff size={16} />}
+                    </button>
+                    <button 
+                         onClick={() => setIsExpenseModalOpen(true)}
+                         className="text-xs bg-red-500/20 text-red-500 px-3 py-1 rounded-full hover:bg-red-500 hover:text-white transition-colors"
+                    >
+                    + Nouvelle
+                    </button>
+               </div>
+          </div>
+          
+          <div className="space-y-2">
+              {visibleExpenses.map((exp) => (
+                  <div key={exp.id} className="flex justify-between items-center p-3 glass-panel rounded-xl border-l-2 border-red-500">
+                      <div>
+                          <p className="font-bold text-sm">{exp.name}</p>
+                          <p className="text-xs opacity-50">Le {exp.dayOfMonth} du mois</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                          <span className="font-mono text-red-400">-{formatPrice(exp.amount)}</span>
+                          <button onClick={() => removeRecurringExpense(exp.id)} className="text-red-500 opacity-50 hover:opacity-100">
+                              <Trash2 size={14} />
+                          </button>
+                      </div>
+                  </div>
+              ))}
+              {recurringExpenses.length === 0 && (
+                   <p className="text-center opacity-30 text-xs italic">Aucune charge fixe.</p>
+              )}
+          </div>
+
+          {recurringExpenses.length > 3 && (
+              <button 
+                onClick={() => setShowExpenses(!showExpenses)}
+                className="w-full text-center text-xs opacity-50 hover:opacity-100 mt-2 flex items-center justify-center gap-1"
+              >
+                  {showExpenses ? 'Voir moins' : `Voir plus (${recurringExpenses.length - 3} autres)`} <ChevronDown className={cn("transition-transform", showExpenses && "rotate-180")} size={12} />
+              </button>
+          )}
+      </div>
+
       {/* Danger Zone */}
-      <div className="mt-12 text-center">
-          <button 
-            onClick={() => { if(confirm('Sûr ? Tout sera effacé.')) resetData(); }}
-            className="text-xs text-red-500 opacity-50 hover:opacity-100 underline"
-          >
-              Réinitialiser toutes les données
-          </button>
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <button onClick={() => { if(confirm('Sûr ? Tout sera effacé.')) resetData(); }} className="p-3 rounded-xl glass-card text-center text-xs text-red-400 col-span-4">Réinitialiser</button>
       </div>
 
       {/* MODAL: New Goal */}
@@ -459,6 +544,27 @@ export const SettingsView = () => {
           )}
       </AnimatePresence>
 
+      {/* RECURRING MODALS */}
+      <AnimatePresence>
+        {isIncomeModalOpen && (
+            <RecurringItemModal 
+                isOpen={isIncomeModalOpen} 
+                onClose={() => setIsIncomeModalOpen(false)}
+                onSave={(n, a, d) => addRecurringIncome({ name: n, amount: a, dayOfMonth: d })}
+                type="income"
+            />
+        )}
+        {isExpenseModalOpen && (
+            <RecurringItemModal 
+                isOpen={isExpenseModalOpen} 
+                onClose={() => setIsExpenseModalOpen(false)}
+                onSave={(n, a, d) => addRecurringExpense({ name: n, amount: a, dayOfMonth: d })}
+                type="expense"
+            />
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };
+

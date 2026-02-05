@@ -5,6 +5,9 @@ import { Header } from './components/layout/Header';
 import { ChatInput, ChatBubble } from './components/chat/ChatInterfaces';
 import { StatsView } from './components/features/Stats';
 import { SettingsView } from './components/features/Savings';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { Login } from './components/auth/Login';
+import { OnboardingChat } from './components/auth/OnboardingChat';
 
 const MainView = () => {
   const { messages, sendMessage, isLoading } = useApp();
@@ -71,14 +74,40 @@ const MainView = () => {
   );
 };
 
-import { AuthProvider } from './context/AuthContext';
+// Imports moved to top
+
+const AppContent = () => {
+    const { user, profile, loading } = useAuth();
+    
+    if (loading) {
+      return (
+        <div className="min-h-screen bg-black text-white flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500"></div>
+        </div>
+      );
+    }
+
+    // 1. Not Logged In -> Login Screen
+    if (!user) return <Login />;
+
+    // 2. Logged In but No Profile (or partial) -> Onboarding
+    if (!profile || !profile.onboardingComplete) {
+       // Using the new Chat-based Onboarding with Mascot
+       return <OnboardingChat onComplete={() => window.location.reload()} />;
+    }
+
+    // 3. Authenticated & Onboarded -> Main App
+    return (
+        <AppProvider>
+            <MainView />
+        </AppProvider>
+    );
+};
 
 function App() {
   return (
     <AuthProvider>
-        <AppProvider>
-            <MainView />
-        </AppProvider>
+       <AppContent />
     </AuthProvider>
   );
 }

@@ -11,16 +11,21 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@react-three/drei": "^9.108.3",
+    "@react-three/fiber": "^8.16.8",
     "@types/three": "^0.182.0",
     "clsx": "^2.0.0",
     "firebase": "^12.8.0",
-    "framer-motion": "^10.16.4",
+    "framer-motion": "^10.18.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.0.0",
     "lucide-react": "^0.292.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-is": "^19.2.3",
     "recharts": "^3.6.0",
     "tailwind-merge": "^2.0.0",
-    "three": "^0.182.0"
+    "three": "^0.165.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.37",
