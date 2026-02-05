@@ -7,7 +7,28 @@ import { Mascot } from '../mascot/MascotScene';
 
 // --- Types ---
 
-// ... (Types remain same) ...
+export interface Transaction {
+  id?: string;
+  amount: number;
+  category: string;
+  is_expense: boolean;
+  date: string;
+  currency: string;
+  type: string;
+  name: string;
+}
+
+export interface Message {
+  id: string;
+  text: string;
+  sender: 'user' | 'ai';
+  timestamp: any;
+  metadata?: {
+    image?: string;
+    transaction?: Partial<Transaction>;
+    sentiment?: 'praise' | 'sarcastic' | 'warning' | 'neutral';
+  };
+}
 
 export const ChatBubble = ({ message }: { message: Message }) => {
   const isAi = message.sender === 'ai';
@@ -70,7 +91,7 @@ export const ChatBubble = ({ message }: { message: Message }) => {
              "bg-black/30 border border-white/5 text-neon-green"
            )}>
              <span>{message.metadata.transaction.category || 'Dépense'}</span>
-             <span className="font-bold">-{formatPrice(message.metadata.transaction.amount)}</span>
+             <span className="font-bold">-{formatPrice(message.metadata.transaction.amount || 0)}</span>
            </div>
         )}
 
